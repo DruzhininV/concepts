@@ -1,0 +1,6 @@
+[requires]
+fmt/8.0.1
+boost/1.78.0
+
+[generators]
+cmake_find_package
