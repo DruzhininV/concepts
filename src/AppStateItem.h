@@ -33,16 +33,6 @@ concept AppState =
 };
 
 
-//template<template<typename...> class T, typename Arg>
-//concept DumpStrategy = std::invocable<T<Arg>, Arg> and AppState<Arg>;
-
-auto defaultDumpStrategy = [](AppState auto const& value) {
-    dump(value);
-};
-
-//static_assert(DumpStrategy<decltype(defaultDumpStrategy<int>), int>);
-
-
 class AppStateItem {
 public:
     ~AppStateItem() = default;
@@ -122,7 +112,7 @@ static_assert(AppState<AppStateItem>);
 
 template<typename T>
 concept StdLikeContainer = std::copyable<T>
-                           and requires (T container, T const constContainer) {
+                           and requires (T container) {
     typename T::value_type;
 //        typename T::allocator_type;
     typename T::size_type;
@@ -143,10 +133,13 @@ concept StdLikeContainer = std::copyable<T>
     { std::size(container) } noexcept -> std::same_as<typename T::size_type>;
     { container.empty() } noexcept -> std::same_as<bool>;
     { container.front() } -> std::same_as<typename T::reference>;
-    { constContainer.front() } -> std::same_as<typename T::const_reference>;
     { container.back() } -> std::same_as<typename T::reference>;
-    { constContainer.back() } -> std::same_as<typename T::const_reference>;
+    requires requires (T const& constContainer) {
+       { constContainer.front() } -> std::same_as<typename T::const_reference>;
+       { constContainer.back() } -> std::same_as<typename T::const_reference>;
+   };
 };
+
 static_assert(StdLikeContainer<std::vector<int>>);
 static_assert(StdLikeContainer<std::list<int>>);
 static_assert(StdLikeContainer<std::array<int,1>>);
