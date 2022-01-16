@@ -11,6 +11,7 @@
 #include <boost/circular_buffer.hpp>
 
 #include <iostream>
+#include <iomanip>
 
 
 namespace app {
@@ -20,15 +21,15 @@ concept Streamable = requires(T value, std::ostream out) {
     { out << value } -> std::convertible_to<std::ostream&>;
 };
 
-void dump(Streamable auto const& value, std::ostream& out) {
-    out << value << "\n";
+void dump(Streamable auto const& value) {
+    std::cout << value << "\n";
 }
 
 template<typename T>
 concept AppState =
     std::copyable<T>
-    and requires (T value, std::ostream& out) {
-        dump(value, out);
+    and requires (T value) {
+        dump(value);
 };
 
 template<typename T>
@@ -64,22 +65,6 @@ static_assert(StdLikeContainer<std::array<int,1>>);
 static_assert(StdLikeContainer<boost::circular_buffer<int>>);
 
 
-class AppStateItem;
-
-template<typename T>
-concept AppStateContainer = StdLikeContainer<T>
-    and std::same_as<AppStateItem, typename T::value_type>
-    and AppState<typename T::value_type>;
-
-void dump(AppStateContainer auto container, std::ostream& out) {
-    std::cout << "Container begin\n";
-    std::ranges::for_each(container, [&](AppState auto const& state) {
-        dump(state, out);
-    });
-    std::cout << "Container end\n";
-}
-
-
 class AppStateItem {
 public:
     ~AppStateItem() = default;
@@ -95,8 +80,8 @@ public:
     template<AppState T> explicit AppStateItem(T state)
         : model_{ std::make_unique<AppStateModel<T>>(std::move(state)) } {}
 
-    friend void dump(AppStateItem const& val, std::ostream& out) {
-        val.model_->dump_(out);
+    friend void dump(AppStateItem const& val /*, Args*/) {
+        val.model_->dump_(/*Args*/);
     }
 
 private:
@@ -107,7 +92,7 @@ private:
     struct AppStateConcept {
         virtual ~AppStateConcept() = default;
         virtual Concept copy() const = 0;
-        virtual void dump_(std::ostream&) = 0;
+        virtual void dump_(/*Args*/) = 0;
     };
 
     template<AppState T>
@@ -119,8 +104,8 @@ private:
             return std::make_unique<AppStateModel>(*this);
         }
 
-        void dump_(std::ostream& stream) final {
-            dump(data_, stream);
+        void dump_(/*Args*/) final {
+            dump(data_ /*, Args*/);
         }
 
         T data_;
@@ -132,6 +117,20 @@ private:
 static_assert(std::movable<AppStateItem>);
 static_assert(std::copyable<AppStateItem>);
 static_assert(AppState<AppStateItem>);
+
+template<typename T>
+concept AppStateContainer = StdLikeContainer<T>
+                            and std::same_as<AppStateItem, typename T::value_type>
+                            and AppState<typename T::value_type>;
+
+void dump(AppStateContainer auto container) {
+    std::cout << "Container begin\n";
+    std::ranges::for_each(container, [&](AppState auto const& state) {
+        dump(state);
+    });
+    std::cout << "Container end\n";
+}
+
 
 static_assert(AppStateContainer<std::vector<AppStateItem>>);
 static_assert(not AppStateContainer<std::string>);

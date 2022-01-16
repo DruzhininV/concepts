@@ -5,8 +5,8 @@ using namespace app;
 
 struct MyType{};
 
-void dump(MyType value, std::ostream& out) {
-    out << "MyType\n";
+void dump(MyType value) {
+    std::cout << "MyType\n";
 }
 
 
@@ -25,6 +25,7 @@ int main()
 
 
     std::vector<AppStateItem> appState{};
+    using AppStateHistory = boost::circular_buffer<AppStateItem>;
 
     appState.emplace_back(0);
     appState.emplace_back(1.1);
@@ -33,8 +34,10 @@ int main()
     appState.emplace_back(std::string{"string"});
     appState.emplace_back(MyType{});
 
+    AppStateHistory history{10};
 
-    dump(appState, std::cout);
+
+    dump(appState);
 
 
     return 0;
