@@ -2,5 +2,5 @@
 target_sources(${PROJECT_NAME}
     PRIVATE
         main.cpp
-        state.h
+        AppStateItem.h
     )

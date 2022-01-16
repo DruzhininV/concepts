@@ -1,31 +1,31 @@
-#include "state.h"
-using namespace Concept;
+#include "AppStateItem.h"
+using namespace app;
 #include <vector>
 
 
 int main()
 {
 
-    Object object{42};
-    Object copy{object};
-    Object movedCopy{std::move(copy)};
-    Object copyAssigned = object;
-    Object moveAssigned = std::move(object);
+    AppStateItem object{42};
+    AppStateItem copy{object};
+    AppStateItem movedCopy{std::move(copy)};
+    AppStateItem copyAssigned = object;
+    AppStateItem moveAssigned = std::move(object);
 
     //////////////////////////////////////////////////
 
 
-    Object o1{5};
-    Object o2{3.141483647};
-//    Object o3{"o2"};
-//    Object o4{std::string("o2")};
-//    Object o4{MyType{}};
+    AppStateItem o1{5};
+    AppStateItem o2{3.141483647};
+//    AppStateItem o3{"o2"};
+//    AppStateItem o4{std::string("o2")};
+//    AppStateItem o4{MyType{}};
     dump(o1, std::cout);
     dump(o2, std::cout);
 //    dump(o3, std::cout);
 //    dump(o4, std::cout);
 
-    std::vector<Object> vec{};
+    std::vector<AppStateItem> vec{};
 //    vec.emplace_back(3.141483647);
 //    vec.emplace_back("vec[1]");
 
