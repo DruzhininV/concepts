@@ -3,8 +3,16 @@ using namespace app;
 #include <vector>
 
 
+struct MyType{};
+
+void dump(MyType value, std::ostream& out) {
+    out << "MyType\n";
+}
+
+
 int main()
 {
+    //////////////////////////////////////////////////
 
     AppStateItem object{42};
     AppStateItem copy{object};
@@ -15,19 +23,18 @@ int main()
     //////////////////////////////////////////////////
 
 
-    AppStateItem o1{5};
-    AppStateItem o2{3.141483647};
-//    AppStateItem o3{"o2"};
-//    AppStateItem o4{std::string("o2")};
-//    AppStateItem o4{MyType{}};
-    dump(o1, std::cout);
-    dump(o2, std::cout);
-//    dump(o3, std::cout);
-//    dump(o4, std::cout);
 
-    std::vector<AppStateItem> vec{};
-//    vec.emplace_back(3.141483647);
-//    vec.emplace_back("vec[1]");
+    std::vector<AppStateItem> appState{};
+
+    appState.emplace_back(0);
+    appState.emplace_back(1.1);
+    appState.emplace_back("2");
+    appState.emplace_back(appState);
+    appState.emplace_back(std::string{"string"});
+    appState.emplace_back(MyType{});
+
+
+    dump(appState, std::cout);
 
 
     return 0;

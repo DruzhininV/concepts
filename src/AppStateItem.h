@@ -2,26 +2,83 @@
 
 #include <concepts>
 #include <memory>
+#include <vector>
+#include <array>
+#include <list>
+#include <string>
+#include <ranges>
 #include <fmt/core.h>
+#include <boost/circular_buffer.hpp>
 
 #include <iostream>
 
 
 namespace app {
 
+template <typename T>
+concept Streamable = requires(T value, std::ostream out) {
+    { out << value } -> std::convertible_to<std::ostream&>;
+};
 
-template<typename T>
-concept Number = std::integral<T> or std::floating_point<T>;
-
-void dump(Number auto val, std::ostream& out) {
-    out << fmt::format("Number = {}\n", val);
+void dump(Streamable auto const& value, std::ostream& out) {
+    out << value << "\n";
 }
 
-template<typename T> concept AppState =
-        std::copyable<T>
-        and requires (T value, std::ostream& out) {
-            dump(value, out);
+template<typename T>
+concept AppState =
+    std::copyable<T>
+    and requires (T value, std::ostream& out) {
+        dump(value, out);
 };
+
+template<typename T>
+concept StdLikeContainer = std::copyable<T>
+    and requires (T container, T const constContainer) {
+        typename T::value_type;
+//        typename T::allocator_type;
+        typename T::size_type;
+        typename T::difference_type;
+        typename T::reference;
+        typename T::const_reference;
+        typename T::pointer;
+        typename T::const_pointer;
+        typename T::iterator;
+        typename T::const_pointer;
+        typename T::reverse_iterator;
+        typename T::const_reverse_iterator;
+
+        { std::begin(container) } -> std::same_as<typename T::iterator>;
+        { std::cbegin(container) } -> std::same_as<typename T::const_iterator>;
+        { std::end(container) } -> std::same_as<typename T::iterator>;
+        { std::cend(container) } -> std::same_as<typename T::const_iterator>;
+        { std::size(container) } noexcept -> std::same_as<typename T::size_type>;
+        { container.empty() } noexcept -> std::same_as<bool>;
+        { container.front() } -> std::same_as<typename T::reference>;
+        { constContainer.front() } -> std::same_as<typename T::const_reference>;
+        { container.back() } -> std::same_as<typename T::reference>;
+        { constContainer.back() } -> std::same_as<typename T::const_reference>;
+};
+static_assert(StdLikeContainer<std::vector<int>>);
+static_assert(StdLikeContainer<std::list<int>>);
+static_assert(StdLikeContainer<std::array<int,1>>);
+static_assert(StdLikeContainer<boost::circular_buffer<int>>);
+
+
+class AppStateItem;
+
+template<typename T>
+concept AppStateContainer = StdLikeContainer<T>
+    and std::same_as<AppStateItem, typename T::value_type>
+    and AppState<typename T::value_type>;
+
+void dump(AppStateContainer auto container, std::ostream& out) {
+    std::cout << "Container begin\n";
+    std::ranges::for_each(container, [&](AppState auto const& state) {
+        dump(state, out);
+    });
+    std::cout << "Container end\n";
+}
+
 
 class AppStateItem {
 public:
@@ -76,5 +133,7 @@ static_assert(std::movable<AppStateItem>);
 static_assert(std::copyable<AppStateItem>);
 static_assert(AppState<AppStateItem>);
 
+static_assert(AppStateContainer<std::vector<AppStateItem>>);
+static_assert(not AppStateContainer<std::string>);
 
 } //namespace app;
