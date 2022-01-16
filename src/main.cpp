@@ -27,12 +27,19 @@ int main()
     std::vector<AppStateItem> appState{};
     using AppStateHistory = boost::circular_buffer<AppStateItem>;
 
-    appState.emplace_back(0);
-    appState.emplace_back(1.1);
-    appState.emplace_back("2");
+    auto dbDumper{[](AppState auto const& state){
+        std::cout << fmt::format("Dump into DataBase {}\n", state);
+    }};
+
+    appState.emplace_back(0, dbDumper);
+    appState.emplace_back(1.1, dbDumper);
+    appState.emplace_back("2", dbDumper);
     appState.emplace_back(appState);
-    appState.emplace_back(std::string{"string"});
+    appState.emplace_back(std::string{"string"}, dbDumper);
     appState.emplace_back(MyType{});
+    appState.emplace_back(42, [](AppState auto const& state){
+        std::cout << fmt::format("Dump into DataBase: {}\n", state);
+    });
 
     AppStateHistory history{10};
 

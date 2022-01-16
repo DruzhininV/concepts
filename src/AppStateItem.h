@@ -32,37 +32,15 @@ concept AppState =
         dump(value);
 };
 
-template<typename T>
-concept StdLikeContainer = std::copyable<T>
-    and requires (T container, T const constContainer) {
-        typename T::value_type;
-//        typename T::allocator_type;
-        typename T::size_type;
-        typename T::difference_type;
-        typename T::reference;
-        typename T::const_reference;
-        typename T::pointer;
-        typename T::const_pointer;
-        typename T::iterator;
-        typename T::const_pointer;
-        typename T::reverse_iterator;
-        typename T::const_reverse_iterator;
 
-        { std::begin(container) } -> std::same_as<typename T::iterator>;
-        { std::cbegin(container) } -> std::same_as<typename T::const_iterator>;
-        { std::end(container) } -> std::same_as<typename T::iterator>;
-        { std::cend(container) } -> std::same_as<typename T::const_iterator>;
-        { std::size(container) } noexcept -> std::same_as<typename T::size_type>;
-        { container.empty() } noexcept -> std::same_as<bool>;
-        { container.front() } -> std::same_as<typename T::reference>;
-        { constContainer.front() } -> std::same_as<typename T::const_reference>;
-        { container.back() } -> std::same_as<typename T::reference>;
-        { constContainer.back() } -> std::same_as<typename T::const_reference>;
+//template<template<typename...> class T, typename Arg>
+//concept DumpStrategy = std::invocable<T<Arg>, Arg> and AppState<Arg>;
+
+auto defaultDumpStrategy = [](AppState auto const& value) {
+    dump(value);
 };
-static_assert(StdLikeContainer<std::vector<int>>);
-static_assert(StdLikeContainer<std::list<int>>);
-static_assert(StdLikeContainer<std::array<int,1>>);
-static_assert(StdLikeContainer<boost::circular_buffer<int>>);
+
+//static_assert(DumpStrategy<decltype(defaultDumpStrategy<int>), int>);
 
 
 class AppStateItem {
@@ -79,6 +57,11 @@ public:
 
     template<AppState T> explicit AppStateItem(T state)
         : model_{ std::make_unique<AppStateModel<T>>(std::move(state)) } {}
+
+    template<typename T, typename DumpStrategy>
+    requires std::invocable<DumpStrategy, T>
+    AppStateItem(T state, DumpStrategy strategy)
+        : model_{ std::make_unique<CustomizableModel<T, DumpStrategy>>(std::move(state), std::move(strategy))} {}
 
     friend void dump(AppStateItem const& val /*, Args*/) {
         val.model_->dump_(/*Args*/);
@@ -111,12 +94,63 @@ private:
         T data_;
     };
 
+    template<AppState T, typename DumpStrategy>
+    requires std::invocable<DumpStrategy, T>
+    struct CustomizableModel final : AppStateConcept {
+        CustomizableModel(T state, DumpStrategy strategy)
+        : data_{ std::move(state) }, dumpStrategy_{ std::move(strategy) } {}
+        ~CustomizableModel() final = default;
+
+        [[nodiscard]] Concept copy() const final {
+            return std::make_unique<CustomizableModel>(*this);
+        }
+
+        void dump_() final {
+            dumpStrategy_(data_);
+        }
+
+        T data_;
+        DumpStrategy dumpStrategy_;
+    };
+
     Concept model_;
 };
 
 static_assert(std::movable<AppStateItem>);
 static_assert(std::copyable<AppStateItem>);
 static_assert(AppState<AppStateItem>);
+
+template<typename T>
+concept StdLikeContainer = std::copyable<T>
+                           and requires (T container, T const constContainer) {
+    typename T::value_type;
+//        typename T::allocator_type;
+    typename T::size_type;
+    typename T::difference_type;
+    typename T::reference;
+    typename T::const_reference;
+    typename T::pointer;
+    typename T::const_pointer;
+    typename T::iterator;
+    typename T::const_pointer;
+    typename T::reverse_iterator;
+    typename T::const_reverse_iterator;
+
+    { std::begin(container) } -> std::same_as<typename T::iterator>;
+    { std::cbegin(container) } -> std::same_as<typename T::const_iterator>;
+    { std::end(container) } -> std::same_as<typename T::iterator>;
+    { std::cend(container) } -> std::same_as<typename T::const_iterator>;
+    { std::size(container) } noexcept -> std::same_as<typename T::size_type>;
+    { container.empty() } noexcept -> std::same_as<bool>;
+    { container.front() } -> std::same_as<typename T::reference>;
+    { constContainer.front() } -> std::same_as<typename T::const_reference>;
+    { container.back() } -> std::same_as<typename T::reference>;
+    { constContainer.back() } -> std::same_as<typename T::const_reference>;
+};
+static_assert(StdLikeContainer<std::vector<int>>);
+static_assert(StdLikeContainer<std::list<int>>);
+static_assert(StdLikeContainer<std::array<int,1>>);
+static_assert(StdLikeContainer<boost::circular_buffer<int>>);
 
 template<typename T>
 concept AppStateContainer = StdLikeContainer<T>
