@@ -111,8 +111,8 @@ static_assert(std::copyable<AppStateItem>);
 static_assert(AppState<AppStateItem>);
 
 template<typename T>
-concept StdLikeContainer = std::copyable<T>
-                           and requires (T container) {
+concept std_like_container = std::copyable<T>
+                             and requires (T container) {
     typename T::value_type;
 //        typename T::allocator_type;
     typename T::size_type;
@@ -126,27 +126,29 @@ concept StdLikeContainer = std::copyable<T>
     typename T::reverse_iterator;
     typename T::const_reverse_iterator;
 
-    { std::begin(container) } -> std::same_as<typename T::iterator>;
-    { std::cbegin(container) } -> std::same_as<typename T::const_iterator>;
-    { std::end(container) } -> std::same_as<typename T::iterator>;
-    { std::cend(container) } -> std::same_as<typename T::const_iterator>;
-    { std::size(container) } noexcept -> std::same_as<typename T::size_type>;
+    { container.begin() } -> std::same_as<typename T::iterator>;
+    { container.end() } -> std::same_as<typename T::iterator>;
+    { container.cbegin() } -> std::same_as<typename T::const_iterator>;
+    { container.cend() } -> std::same_as<typename T::const_iterator>;
+    { container.size() } noexcept -> std::same_as<typename T::size_type>;
     { container.empty() } noexcept -> std::same_as<bool>;
     { container.front() } -> std::same_as<typename T::reference>;
     { container.back() } -> std::same_as<typename T::reference>;
     requires requires (T const& constContainer) {
-       { constContainer.front() } -> std::same_as<typename T::const_reference>;
-       { constContainer.back() } -> std::same_as<typename T::const_reference>;
+        { constContainer.begin() } -> std::same_as<typename T::const_iterator>;
+        { constContainer.end() } -> std::same_as<typename T::const_iterator>;
+        { constContainer.front() } -> std::same_as<typename T::const_reference>;
+        { constContainer.back() } -> std::same_as<typename T::const_reference>;
    };
 };
 
-static_assert(StdLikeContainer<std::vector<int>>);
-static_assert(StdLikeContainer<std::list<int>>);
-static_assert(StdLikeContainer<std::array<int,1>>);
-static_assert(StdLikeContainer<boost::circular_buffer<int>>);
+static_assert(std_like_container<std::vector<int>>);
+static_assert(std_like_container<std::list<int>>);
+static_assert(std_like_container<std::array<int,1>>);
+static_assert(std_like_container<boost::circular_buffer<int>>);
 
 template<typename T>
-concept AppStateContainer = StdLikeContainer<T>
+concept AppStateContainer = std_like_container<T>
                             and std::same_as<AppStateItem, typename T::value_type>
                             and AppState<typename T::value_type>;
 
